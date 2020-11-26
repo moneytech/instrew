@@ -292,3 +292,41 @@ end:
 
     cpu_state[1] = res;
 }
+
+void
+emulate_rv64_syscall(uint64_t* cpu_state) {
+    struct State* state = STATE_FROM_CPU_STATE(cpu_state);
+
+    uint64_t arg0 = cpu_state[11], arg1 = cpu_state[12], arg2 = cpu_state[13],
+             arg3 = cpu_state[14], arg4 = cpu_state[15], arg5 = cpu_state[16];
+    uint64_t nr = cpu_state[18]; // a7/x17
+    ssize_t res = -ENOSYS;
+
+    switch (nr) {
+    native:
+        res = syscall(nr, arg0, arg1, arg2, arg3, arg4, arg5);
+        break;
+
+    default:
+    unhandled:
+        dprintf(2, "unhandled syscall %u (%lx %lx %lx %lx %lx %lx)\n",
+                nr, arg0, arg1, arg2, arg3, arg4, arg5);
+        _exit(1);
+        break;
+
+    case 56: nr = __NR_openat; goto native;
+    case 57: nr = __NR_close; goto native;
+    case 63: nr = __NR_read; goto native;
+    case 64: nr = __NR_write; goto native;
+    case 78: nr = __NR_readlinkat; goto native;
+    case 80: nr = __NR_fstat; goto native;
+    case 93: nr = __NR_exit; goto native;
+    case 94: nr = __NR_exit_group; goto native;
+    case 160: nr = __NR_uname; goto native;
+    case 214: nr = __NR_brk; goto native;
+    }
+
+end:
+
+    cpu_state[11] = res;
+}
